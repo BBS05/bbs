@@ -1,0 +1,62 @@
+表: 用户表，权限表，登录日志表，帖子表，板块表(树形结构)，评论表(发送以及回复评论都在此表)
+	权限表:
+			身份 :	role 会员 ，管理员，超级管理员
+			权限:    authority更新，查询，删除，修改
+			权限关联  user_authority
+user:  用户表
+	user_id int
+	username varchar(50)    用户名
+	password  varchar(100) 密码
+	user_email varchar(100) 邮箱
+	sex 	enum(‘M’,’F’，NOMF) 性别
+	nickname varchar(50) 昵称
+        role_id    int   权限id (rkike外键)
+
+role:  权限表（身份）
+	role_id int 权限id
+	role_name varchar(50) 权限名字(游客,会员，管理员，超级管理员)(游客可免登录，但不能访问板块内的内容)
+
+post: 帖子表
+	post_id  int  帖子id
+	post_title varchar(100) 帖子标题
+	post_content  text     帖子内容
+	user_id    int 用户id(此处是外键)
+	topic_id  int 板块id(此处是外键)
+ 	username varchar(50) 发帖人名字
+	comments_number int  评论数量
+	release_time  timpstamp 发布时间
+
+
+comments:  评论表
+	comments_id int  评论id
+	comments_content varchar(100) 评论内容
+	post_id int 帖子id(此处是外键)
+	user_id int 用户id(此处外键)
+	username varchar(50)  评论用户名(此处是外键)
+	comments_time   timpstamp  评论时间
+
+
+topic: 板块表 (树形结构)
+        topic_id int 板块id
+	topic_name varchar(50) 板块名称
+	topic_left int   板块左
+	topic_right int 板块右
+
+
+
+
+authority:权限表（增，删，改，查）
+    authority_id int auto_increment primary key 权限id
+    authority_name varchar(50) not null		权限名称
+
+);
+
+
+user_authority :用户关联权限
+        id int auto_increment primary key 关联id
+        role_id int not null ,		          角色id
+        authority int not null	 	          权限id
+
+
+
+
