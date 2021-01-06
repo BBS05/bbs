@@ -7,7 +7,7 @@
         <packaging>war</packaging>
       </options>
     </properties>
-    <root id="archive" name="topic-1.0-SNAPSHOT.war">
+    <root id="archive" name="JavaLearningForum.war">
       <element id="artifact" artifact-name="topic:war exploded" />
     </root>
   </artifact>
