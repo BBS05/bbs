@@ -1,0 +1,103 @@
+#遍历某一个节点的子节点
+SELECT *
+FROM category
+WHERE category_left BETWEEN (select category_left from category where category_id=11) AND (select category_right from category where category_id=11)
+ORDER BY category_left ASC;
+
+#求某个节点有多少个子节点：(右-左-1)/2
+create function countChild(lv_category_id int) returns int
+    deterministic
+    reads sql data
+begin
+    declare lv_right int default 0;
+    declare lv_left int default 0;
+    select category_right into lv_right
+    from category where category_id = lv_category_id;
+
+    select category_left into lv_left
+    from category where category_id = lv_category_id;
+    return (lv_right - lv_left - 1) / 2;
+end;
+
+select countChild(11) from dual;
+set global log_bin_trust_function_creators = 1;
+
+
+#找出某个节点在哪个层上
+create function whichLevel(lv_category_id int) returns int
+    deterministic reads sql data
+begin
+    declare lv_level int default 0;
+    declare lv_right int default 0;
+    declare lv_left int default 0;
+    select category_right into lv_right from category where category_id = lv_category_id;
+    select category_left into lv_left from category where category_id = lv_category_id;
+    SELECT count(*) into lv_level FROM category
+    WHERE category_left <= lv_left AND category_right >= lv_right;
+    return lv_level;
+end;
+select whichLevel(12)
+from dual;
+
+
+#建立一个view，这个view包括了原始表格和层次
+drop view if exists category_view;
+CREATE VIEW category_view
+AS
+SELECT c.*, whichLevel(category_id) level
+FROM category c
+ORDER BY category_left;
+
+select *
+from category_view;
+
+
+#通过查询view，查看某个节点的所有子节点及其所在level
+drop procedure if exists category_children;
+create procedure category_children(lv_category_id int)
+begin
+    declare lv_right int default 0;
+    declare lv_left int default 0;
+    select category_right into lv_right from category where category_id = lv_category_id;
+    select category_left into lv_left from category where category_id = lv_category_id;
+    SELECT *
+    FROM category_view
+    WHERE category_left BETWEEN lv_left AND lv_right
+    ORDER BY category_left ASC;
+end;
+call category_children(11);
+
+
+#获得某个节点一直到根的父路径
+drop procedure if exists category_parent;
+create procedure category_parent(lv_category_id int)
+begin
+    declare lv_right int default 0;
+    declare lv_left int default 0;
+    select category_right into lv_right from category where category_id = lv_category_id;
+    select category_left into lv_left from category where category_id = lv_category_id;
+    SELECT *
+    FROM category_view
+    WHERE category_left < lv_left
+      AND category_right > lv_right
+    ORDER BY category_left;
+end;
+call category_parent(14);
+
+select category_right  from category where category_id = 14;
+
+#为某个节点增加一个子节点
+drop procedure if exists add_child;
+create procedure add_child(lv_category_id int, category_name varchar(30))
+begin
+    declare lv_right int default 0;
+    select category_right into lv_right from category where category_id = lv_category_id;
+    #查看待插入节点的父亲节点的right
+    update category set category_right=category_right + 2 where category_right >= lv_right;
+    update category set category_left=category_left + 2 where category_left >= lv_right;
+    insert into category(category_name, category_left, category_right)
+    values (category_name, lv_right, lv_right + 1);
+end;
+call add_child(14, '永隆银行');
+
+#为某个节点删除一个子节点
